@@ -1,0 +1,13 @@
+:root {
+  --green: hsl(114 86.5% 40.8%);
+
+}
+
+#canvas1 {
+  background-color: lightgreen;
+  position: absolute;
+  /* border: 5px solid var(--green); */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
