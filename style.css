@@ -1,10 +1,11 @@
 :root {
   --green: hsl(114 86.5% 40.8%);
+  background-color: grey;
 
 }
 
 #canvas1 {
-  background-color: lightgreen;
+  background-color: rgb(52, 52, 52);
   position: absolute;
   /* border: 5px solid var(--green); */
   top: 50%;
