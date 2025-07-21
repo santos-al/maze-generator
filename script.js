@@ -1,17 +1,21 @@
 const canvas = document.getElementById('canvas1');
 const ctx = canvas.getContext('2d');
 
+const dungeonTiles = new Image();
+dungeonTiles.src = "./assets/character-and-tileset/Dungeon_Tileset.png";
+
 const CANVAS_WIDTH = 1500;
 const CANVAS_HEIGHT = 1000;
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
-const w = 50; // width of each cell
+const w = 50; // width/height of each cell
 let cols, rows;
 let grid = [];
 let stack = [];
 let current;
-let frameRate = 50;
+
+let tileCanvas, tileCtx; // offscreen canvas for cropped tile image
 
 function index(i, j) {
   if (i < 0 || j < 0 || i >= cols || j >= rows) {
@@ -80,15 +84,13 @@ class Cell {
     if (this.walls.left)   this.draw_line(x    , y + w, x    , y    );
 
     if (this.visited) {
-      
-      ctx.fillStyle = "black"
+      // Draw the cropped tile image from the offscreen canvas
+      ctx.drawImage(tileCanvas, x, y, w, w);
 
       if (!this.walls.top)    this.removeLine(x    , y    , x + w, y    );
       if (!this.walls.right)  this.removeLine(x + w, y    , x + w, y + w);
       if (!this.walls.bottom) this.removeLine(x + w, y + w, x    , y + w);
       if (!this.walls.left)   this.removeLine(x    , y + w, x    , y    );
-
-      ctx.fillRect(x, y, w, w);
     }
   }
 }
@@ -112,7 +114,6 @@ function removeWalls(curr, nxt) {
     curr.walls.bottom = false;
     nxt.walls.top = false;
   }
-
 }
 
 function setup() {
@@ -136,29 +137,36 @@ function draw() {
   for (let i = 0; i < grid.length; i++) {
     grid[i].draw_cell();
   }
+}
 
-  // STEP 1
-  let next = current.checkNeighbors();
-  if (next) {
-    next.visited = true;
-
-    // STEP 2
-    stack.push(current);
-
-    // STEP 3
-    removeWalls(current, next);
-
-    // STEP 4
-    current = next;
-  } else if (stack.length) {
-    current = stack.pop();
+function generateMaze() {
+  while (true) {
+    let next = current.checkNeighbors();
+    if (next) {
+      next.visited = true;
+      stack.push(current);
+      removeWalls(current, next);
+      current = next;
+    } else if (stack.length) {
+      current = stack.pop();
+    } else {
+      break; // Maze complete
+    }
   }
-}
-
-function animate() {
   draw();
-  setTimeout(animate, 1000 / frameRate);
 }
 
-setup();
-animate();
+// Wait for image to load before setup & generate
+dungeonTiles.onload = function() {
+  // Create offscreen canvas to crop tile from dungeonTiles
+  tileCanvas = document.createElement('canvas');
+  tileCanvas.width = 10;  // cropped tile width
+  tileCanvas.height = 10; // cropped tile height
+  tileCtx = tileCanvas.getContext('2d');
+
+  // Crop 10x10 pixels from top-left corner of tileset (change sx, sy here to move crop)
+  tileCtx.drawImage(dungeonTiles, 0, 0, 10, 10, 0, 0, 10, 10);
+
+  setup();
+  generateMaze();
+};
