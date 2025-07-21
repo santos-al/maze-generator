@@ -6,7 +6,7 @@ const CANVAS_HEIGHT = 1000;
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
-const w = 30; // width of each cell
+const w = 50; // width of each cell
 let cols, rows;
 let grid = [];
 let stack = [];
