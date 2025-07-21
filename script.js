@@ -9,13 +9,14 @@ const CANVAS_HEIGHT = 1000;
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
-const w = 50; // width/height of each cell
+const w = 50; // cell width/height
 let cols, rows;
 let grid = [];
 let stack = [];
 let current;
+let frameRate = 50;
 
-let tileCanvas, tileCtx; // offscreen canvas for cropped tile image
+let tileCanvas, tileCtx; // offscreen canvas for cropped tile
 
 function index(i, j) {
   if (i < 0 || j < 0 || i >= cols || j >= rows) {
@@ -26,15 +27,10 @@ function index(i, j) {
 
 class Cell {
   constructor(i, j) {
-    this.i = i; // column
-    this.j = j; // row
+    this.i = i;
+    this.j = j;
     this.visited = false;
-    this.walls = {
-      top: true,
-      right: true,
-      bottom: true,
-      left: true
-    };
+    this.walls = { top: true, right: true, bottom: true, left: true };
   }
 
   checkNeighbors() {
@@ -53,9 +49,8 @@ class Cell {
     if (neighbors.length > 0) {
       const r = Math.floor(Math.random() * neighbors.length);
       return neighbors[r];
-    } else {
-      return undefined;
     }
+    return undefined;
   }
 
   draw_line(x1, y1, x2, y2) {
@@ -84,7 +79,7 @@ class Cell {
     if (this.walls.left)   this.draw_line(x    , y + w, x    , y    );
 
     if (this.visited) {
-      // Draw the cropped tile image from the offscreen canvas
+      ctx.imageSmoothingEnabled = false; // Disable smoothing for crisp pixels
       ctx.drawImage(tileCanvas, x, y, w, w);
 
       if (!this.walls.top)    this.removeLine(x    , y    , x + w, y    );
@@ -101,7 +96,7 @@ function removeWalls(curr, nxt) {
 
   if (x === 1) {
     curr.walls.left = false;
-    nxt.walls.right = false
+    nxt.walls.right = false;
   } else if (x === -1) {
     curr.walls.right = false;
     nxt.walls.left = false;
@@ -122,8 +117,7 @@ function setup() {
 
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
-      let cell = new Cell(i, j);
-      grid.push(cell);
+      grid.push(new Cell(i, j));
     }
   }
 
@@ -134,39 +128,41 @@ function setup() {
 function draw() {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-  for (let i = 0; i < grid.length; i++) {
-    grid[i].draw_cell();
+  for (let cell of grid) {
+    cell.draw_cell();
   }
 }
 
-function generateMaze() {
-  while (true) {
-    let next = current.checkNeighbors();
-    if (next) {
-      next.visited = true;
-      stack.push(current);
-      removeWalls(current, next);
-      current = next;
-    } else if (stack.length) {
-      current = stack.pop();
-    } else {
-      break; // Maze complete
-    }
-  }
+function animate() {
   draw();
+
+  let next = current.checkNeighbors();
+
+  if (next) {
+    next.visited = true;
+    stack.push(current);
+    removeWalls(current, next);
+    current = next;
+  } else if (stack.length) {
+    current = stack.pop();
+  } else {
+    // Maze generation finished, stop animation
+    return;
+  }
+
+  setTimeout(animate, 1000 / frameRate);
 }
 
-// Wait for image to load before setup & generate
 dungeonTiles.onload = function() {
-  // Create offscreen canvas to crop tile from dungeonTiles
+  // Prepare offscreen canvas with cropped tile from dungeonTiles
   tileCanvas = document.createElement('canvas');
-  tileCanvas.width = 10;  // cropped tile width
-  tileCanvas.height = 10; // cropped tile height
+  tileCanvas.width = 10;
+  tileCanvas.height = 10;
   tileCtx = tileCanvas.getContext('2d');
 
-  // Crop 10x10 pixels from top-left corner of tileset (change sx, sy here to move crop)
-  tileCtx.drawImage(dungeonTiles, 0, 0, 10, 10, 0, 0, 10, 10);
+  // Crop top-left 10x10 pixels from tileset (change these coords to pick different tiles)
+  tileCtx.drawImage(dungeonTiles, 0, 0, 10, 10, 0, 0, 30, 30);
 
   setup();
-  generateMaze();
+  animate();
 };
